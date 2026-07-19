@@ -115,8 +115,25 @@ Ph3b3-Light is local-first — it lives on your PC. To reach it from other devic
 
 ---
 
+## Responsible Use
+
+Ph3b3-Light bundles network-scanning and cybersecurity modules, meant only for networks you own or have explicit permission to scan.
+
+- Never run network scans on networks you don't own.
+- nmap OS detection needs root — use it only on your own network.
+- The cybersecurity modules are defensive tools, not offensive ones.
+- Voice and camera data stays on your machine — be mindful of others' privacy.
+
+She's a work in progress, the same as the person who made her. That's not a disclaimer — that's the point. Use her responsibly.
+
+---
+
 ## License
 
 MIT — © 2026 Alexander Jordan Olson (Astroson). See [LICENSE](LICENSE).
 
 *Made with soul. Handle with care.* 🌙
+
+---
+
+*Seeded from the `windows` branch of [Astroson111/ph3b3](https://github.com/Astroson111/ph3b3), then given its own clean history. The firmware's WiFi/server credentials live in a gitignored `secrets.h` — copy `firmware/src/secrets.example.h` → `secrets.h` and fill in your own; never commit it.*
