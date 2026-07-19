@@ -138,6 +138,16 @@ class MetisModule:
         raise last or SearchBroken("search failed")
 
     async def _search_ddg(self, q: str) -> list:
+        """HTML endpoint first, then the lite endpoint — lite is more scraper-
+        friendly and dodges DDG's 202 throttle on some (long) queries. Only after
+        BOTH fail do we surface SearchBroken (fail-loud, never silent-empty)."""
+        try:
+            return await self._ddg_html(q)
+        except SearchBroken as e:
+            log.info(f"DDG html failed ({e}); falling back to lite endpoint")
+            return await self._ddg_lite(q)
+
+    async def _ddg_html(self, q: str) -> list:
         try:
             async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, headers={"User-Agent": _UA},
                                          follow_redirects=True) as c:
@@ -183,6 +193,38 @@ class MetisModule:
         except Exception:
             pass
         return href if href.startswith("http") else ""
+
+    async def _ddg_lite(self, q: str) -> list:
+        try:
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, headers={"User-Agent": _UA},
+                                         follow_redirects=True) as c:
+                r = await c.post("https://lite.duckduckgo.com/lite/",
+                                 data={"q": q, "kp": "1"})
+        except Exception as e:
+            raise SearchBroken(f"DuckDuckGo lite unreachable: {e}")
+        if r.status_code != 200:
+            raise SearchBroken(f"DuckDuckGo lite HTTP {r.status_code}")
+        soup = BeautifulSoup(r.text, "lxml")
+        out, seen = [], set()
+        for a in soup.select("a.result-link"):
+            title = a.get_text(" ", strip=True)
+            url = self._ddg_unwrap(a.get("href", ""))
+            snippet = ""
+            tr = a.find_parent("tr")
+            nxt = tr.find_next_sibling("tr") if tr else None
+            snip = nxt.select_one("td.result-snippet") if nxt else None
+            if snip:
+                snippet = snip.get_text(" ", strip=True)
+            if title and url and url not in seen:
+                seen.add(url)
+                out.append({"title": title, "snippet": snippet, "url": url})
+            if len(out) >= RESULT_CAP:
+                break
+        if not out:
+            if "no results" in r.text.lower():
+                return []
+            raise SearchBroken("DuckDuckGo lite returned a page but 0 results parsed")
+        return out
 
     async def _search_searxng(self, q: str) -> list:
         if not SEARXNG_URL:

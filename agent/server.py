@@ -508,17 +508,25 @@ _SEARCH_PREFIX = re.compile(
     r"^\s*(please\s+)?(can you\s+)?(search (the )?(web|internet|online)( for)?|"
     r"look( this)? up( online)?|google|duckduckgo|find( me)?( online)?|"
     r"search for|look up)\s*[:,]?\s*", re.I)
+# Trailing instruction clauses that pollute the query (and trip DDG's 202 throttle).
+_SEARCH_TAIL = re.compile(
+    r"\s*(?:[,.;]|\band\b|&|\bthen\b)?\s*(?:please\s+)?"
+    r"(?:give|send|show|get|find|provide|include|list|cite|add|share)\s+"
+    r"(?:me\s+)?(?:a|the|some|its|their)?\s*(?:source\s+)?"
+    r"(?:links?|urls?|sources?|citations?|references?)\b.*$", re.I)
 
 
 def _search_intent(user_msg: str):
-    """Return a search query if the turn clearly wants live/web info, else None.
-    Deliberately ignores 'search my notes' etc. (that's a different local tool)."""
+    """Return a clean search query if the turn clearly wants live/web info, else
+    None. Ignores 'search my notes' etc. (a different local tool), strips the
+    command prefix and any trailing 'and give me a link'/'cite sources' clause."""
     ul = (user_msg or "").lower()
     if "my note" in ul or "my file" in ul or "search notes" in ul or "search my" in ul:
         return None
     if not any(t in ul for t in _SEARCH_TRIGGERS):
         return None
     q = _SEARCH_PREFIX.sub("", user_msg).strip()
+    q = _SEARCH_TAIL.sub("", q).strip()
     return q or user_msg.strip()
 
 
