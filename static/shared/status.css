@@ -53,4 +53,16 @@
 #voice-preview-btn:disabled { background: #2a1f4a; color: #5b5280; cursor: not-allowed; }
 .status-note { color: #5b5280; font-size: 12px; margin-top: 10px; line-height: 1.5; }
 .status-note .tier-strong { color: #6ee7b7; font-weight: bold; }
+
+/* ── Web access (egress) toggle ─────────────────────────────────────────── */
+#web-toggle {
+    background: #2a1010; color: #fca5a5; border: 1px solid #7a2a2a; border-radius: 999px;
+    font: inherit; font-size: 13px; font-weight: bold; letter-spacing: 1px;
+    padding: 6px 20px; cursor: pointer; flex-shrink: 0;
+    transition: background .15s, color .15s, border-color .15s;
+}
+#web-toggle.on { background: #0f2a15; color: #6ee7b7; border-color: #1f7a3f; }
+#web-toggle:hover:not(:disabled) { filter: brightness(1.2); }
+#web-toggle:disabled { opacity: .5; cursor: not-allowed; }
+#web-backend { margin-top: 0; color: #8b7fb8; font-size: 12px; }
 .status-note .tier-functional { color: #fbbf24; font-weight: bold; }

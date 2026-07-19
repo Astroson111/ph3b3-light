@@ -109,6 +109,29 @@ Open **🗣 VOICE** in the top bar to choose a voice and language and preview ho
 
 ---
 
+## Web search — Metis (off by default)
+
+Ph3b3-Light can search the live web when you ask — but **web access is OFF by
+default** (privacy-first, since this is a public repo strangers will run). You
+turn it on per-session from the **🗣 Status page** in either portal.
+
+- **You're always told.** Every search is announced in the reply ("I searched the
+  web for …") and the answer ends with a **Sources** list of the URLs used. No
+  silent searches, ever.
+- **Honest consent.** When web access is ON, your search queries **leave this
+  machine** — to your own SearXNG instance if you run one, or directly to
+  DuckDuckGo otherwise. That is the trade you are opting into; everything else in
+  Ph3b3-Light stays local.
+- **Two backends** (`PH3B3_SEARCH_BACKEND`): `auto` (default — SearXNG if you've
+  configured a reachable one, else DuckDuckGo), `searxng`, or `ddg`. The Status
+  card shows the active backend ("via SearXNG" / "via DuckDuckGo"). See
+  [INSTALL.md](INSTALL.md) to run SearXNG locally.
+- **Guardrails.** Fetched pages are treated as untrusted data (they can't make
+  Ph3b3 run tools or change persona); the fetcher refuses private/LAN/localhost
+  addresses; the safety floor gates queries and answers in any language; a broken
+  scrape fails loudly rather than pretending there were no results; and there is
+  no separate search log beyond your normal chat.
+
 ## Access from your phone (optional)
 
 Ph3b3-Light is local-first — it lives on your PC. To reach it from other devices without opening ports on your router, put your PC and phone on the same [Tailscale](https://tailscale.com) network and open your PC's private address on port `7331`. For a full Android app install you'll want HTTPS, which `tailscale serve` provides on your private network.

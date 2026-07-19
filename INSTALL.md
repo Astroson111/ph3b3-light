@@ -158,6 +158,39 @@ python -m platformio run -d C:\pio\ph3b3-fw -t upload       # flash
 
 ---
 
+## Web search (Metis) — DuckDuckGo out of the box, SearXNG optional
+
+Metis (web search) works with **zero setup**: leave `PH3B3_SEARCH_BACKEND=auto`
+(or `ddg`) and searches go directly to DuckDuckGo. Web access is **OFF by
+default** — flip it on from the 🗣 Status page in either portal when you want it,
+per session.
+
+Two privacy postures — your choice, made in writing:
+
+- **DuckDuckGo (default fallback)** — simplest. No container, no account, nothing
+  to run. Your search *queries* go straight to DuckDuckGo (they are not tied to an
+  account, but the query does leave your machine).
+- **SearXNG (recommended if you can run it)** — a metasearch engine you host
+  yourself. Queries are aggregated across engines and anonymised *through your own
+  instance*, so no single upstream engine sees "you". Bind it to localhost:
+
+  ```bash
+  # In WSL2 with Docker / Docker Desktop — 127.0.0.1 keeps it on this machine only:
+  docker run -d --name searxng -p 127.0.0.1:8080:8080 \
+    -e "BASE_URL=http://localhost:8080/" searxng/searxng
+  ```
+  Then in `.env`:
+  ```ini
+  PH3B3_SEARCH_BACKEND=auto          # auto = SearXNG when reachable, else DuckDuckGo
+  PH3B3_SEARXNG_URL=http://localhost:8080
+  ```
+  On `auto`, Ph3b3 checks SearXNG at boot: reachable → **via SearXNG**, otherwise
+  it falls back to **via DuckDuckGo**. The active backend is shown on the Web
+  access card so you always know your posture. No Docker? Do nothing — DDG just
+  works.
+
+---
+
 ## Software Prerequisites (Linux / native — the Nyx box)
 
 ### 1. Python 3.11 or newer

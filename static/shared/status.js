@@ -9,8 +9,10 @@
     const previewBtn   = document.getElementById('voice-preview-btn');
     const voiceCurrent = document.getElementById('voice-current');
     const langNote     = document.getElementById('lang-note');
+    const webToggle    = document.getElementById('web-toggle');
+    const webBackend   = document.getElementById('web-backend');
 
-    function openStatus()  { overlay.classList.add('open'); loadVoices(); loadLanguages(); }
+    function openStatus()  { overlay.classList.add('open'); loadVoices(); loadLanguages(); loadWebAccess(); }
     function closeStatus() { overlay.classList.remove('open'); }
 
     async function apiGet(path) {
@@ -113,6 +115,34 @@
             if (d.audio) await playAudio(d.audio);
         } catch {}
         finally { previewBtn.textContent = old; previewBtn.disabled = false; }
+    });
+
+    // ── Web access (egress) toggle — server-side truth, synced across portals ──
+    function setWebUI(d) {
+        webToggle.disabled = false;
+        webToggle.textContent = d.enabled ? 'ON' : 'OFF';
+        webToggle.classList.toggle('on', !!d.enabled);
+        webBackend.textContent = d.enabled ? ('via ' + (d.backend_label || 'web')) : '';
+    }
+    async function loadWebAccess() {
+        if (!webToggle) return;
+        webBackend.textContent = '';
+        try { setWebUI(await apiGet('/web/config')); }
+        catch (e) {
+            if (e.message === '404') { webToggle.textContent = 'N/A'; webToggle.disabled = true; webBackend.textContent = 'not on this server'; }
+            else if (e.message !== '401') { webToggle.textContent = '—'; }
+        }
+    }
+    if (webToggle) webToggle.addEventListener('click', async () => {
+        if (webToggle.disabled) return;
+        const turnOn = webToggle.textContent !== 'ON';
+        webToggle.disabled = true;
+        try {
+            const r = await apiPost('/web/toggle', { enabled: turnOn });
+            const d = await r.json().catch(() => ({}));
+            setWebUI(d);
+            addSys('Web access → ' + (d.enabled ? ('ON · via ' + (d.backend_label || 'web')) : 'OFF'));
+        } catch { webToggle.disabled = false; }
     });
 
     document.getElementById('status-open').addEventListener('click', openStatus);

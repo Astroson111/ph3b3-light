@@ -42,6 +42,23 @@
         chatEl.scrollTop = chatEl.scrollHeight;
     }
 
+    // Render text with tappable links. Safe: builds text nodes + <a> elements
+    // (never innerHTML from message content), and only http(s) URLs become links.
+    function _linkify(container, text) {
+        const re = /(https?:\/\/[^\s<>"')\]]+)/g;
+        let last = 0, m;
+        while ((m = re.exec(text)) !== null) {
+            if (m.index > last) container.appendChild(document.createTextNode(text.slice(last, m.index)));
+            const a = document.createElement('a');
+            a.href = m[0]; a.textContent = m[0];
+            a.target = '_blank'; a.rel = 'noopener noreferrer';
+            a.className = 'chat-link';
+            container.appendChild(a);
+            last = m.index + m[0].length;
+        }
+        if (last < text.length) container.appendChild(document.createTextNode(text.slice(last)));
+    }
+
     function addMsg(who, text) {
         const isUser = who === 'You';
         const header = document.createElement('div');
@@ -52,7 +69,7 @@
         chatEl.appendChild(header);
         const body = document.createElement('div');
         body.className = `msg-text-${isUser ? 'user' : 'bot'}`;
-        body.textContent = `  ${text}`;
+        _linkify(body, `  ${text}`);
         chatEl.appendChild(body);
         chatEl.scrollTop = chatEl.scrollHeight;
     }

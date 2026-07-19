@@ -11,7 +11,7 @@
     <link rel="manifest" href="/static/light/site.webmanifest">
     <meta name="theme-color" content="#5DDFF2">
     <link rel="stylesheet" href="/static/shared/base.css">
-    <link rel="stylesheet" href="/static/light/status.css">
+    <link rel="stylesheet" href="/static/shared/status.css">
 </head>
 <body>
     <div id="login-overlay">
@@ -77,7 +77,7 @@
     <div id="status-overlay">
         <div id="status-bar">
             <button id="status-back" title="Return to chat">← BACK TO CHAT</button>
-            <span id="status-title">VOICE &amp; LANGUAGE</span>
+            <span id="status-title">VOICE, LANGUAGE &amp; WEB</span>
         </div>
         <div id="status-body">
             <div class="status-card">
@@ -95,6 +95,14 @@
                 </div>
                 <div id="lang-note" class="status-note"></div>
             </div>
+            <div class="status-card">
+                <div class="status-card-title">🌐 Web access</div>
+                <div class="status-row">
+                    <button id="web-toggle">OFF</button>
+                    <span id="web-backend"></span>
+                </div>
+                <div class="status-note">When <b>ON</b>, your search queries leave this machine (to your SearXNG instance or DuckDuckGo). Searches are always announced and cited. Default is <b>OFF</b>.</div>
+            </div>
         </div>
     </div>
 
@@ -103,8 +111,8 @@
     <script src="/static/shared/chat.js"></script>
     <script src="/static/shared/mic.js"></script>
     <script src="/static/shared/gallery.js"></script>
-    <!-- Voice & language status view (light-only) -->
-    <script src="/static/light/status.js"></script>
+    <!-- Voice / language / web-access status view (shared) -->
+    <script src="/static/shared/status.js"></script>
     <!-- Light-portal bootstrap -->
     <script src="/static/light/light.js"></script>
 </body>

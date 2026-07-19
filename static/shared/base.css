@@ -42,6 +42,8 @@
         .msg-text-user { color: #a78bfa; font-size: 13px; white-space: pre-wrap; margin-bottom: 8px; }
         .msg-text-bot  { color: #c084fc; font-size: 13px; white-space: pre-wrap; margin-bottom: 8px; }
         .msg-sys       { color: #5b5280; font-size: 12px; font-style: italic; padding: 4px 0; }
+        .chat-link     { color: #8ab4ff; text-decoration: underline; word-break: break-all; }
+        .chat-link:hover { color: #b3ccff; }
 
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
         .thinking { color: #5b5280; font-size: 12px; font-style: italic;

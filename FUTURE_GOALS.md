@@ -43,4 +43,15 @@ This integration will connect a Flipper Zero to Ph3b3, allowing her to send comm
 
 Nothing is built yet. When work starts, it will live in an `integrations/flipper_zero/` folder alongside any required modules and wiring into `agent/server.py`.
 
+## Web search (Metis)
+
+### og-stack parity
+The standalone port's Metis — dual-backend web search (SearXNG | DuckDuckGo) with
+the egress toggle, announced/cited answers, untrusted-input walls, tool-less
+summarize pass, private-IP refusal, and the per-language safety floor — is built
+to mirror the canonical Metis on the main (Nyx) stack: same tool contract, same
+normalized result shape, same security walls. Keep them in sync — changes to the
+backend or its guardrails should land on both. `modules/metis_module.py` is
+intended to port verbatim.
+
 Flipper Zero serial protocol docs: https://docs.flipper.net
