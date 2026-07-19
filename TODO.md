@@ -52,15 +52,22 @@ Match Nyx's voice bench end to end.
 
 ## How parity is delivered
 
-Depends on Ph3b3-Light's architecture (see README — confirm which):
+**Ph3b3-Light must stand alone** — a bare clone, pointed at nothing but its own
+Windows/WSL2 machine, runs the full experience. It never *depends* on Nyx (or any
+other instance) to work. So parity means **porting Nyx's implementation INTO this
+repo's own server** and keeping it in sync:
 
-- **If Ph3b3-Light runs its own server** (current seed): port the voice/language
-  modules from Nyx `main` (`modules/voices.py`, `modules/tts_module.py`, the
-  `/language` + `/voice/*` endpoints, `config/voices.yaml`, the `setup.sh` voice
-  block) into this repo and keep them in sync.
-- **If Ph3b3-Light is a thin client** onto a remote Nyx: consume Nyx's
-  `/language` + `/voice/*` endpoints via the API. **Any endpoint Light needs that
-  Nyx doesn't expose → file an issue against the main `ph3b3` repo. No light-side
-  workarounds.**
+- `modules/voices.py` — registry loader, language/voice state, three-state logic.
+- `modules/tts_module.py` — multi-voice synth, native-script handling, RMS gate.
+- `agent/server.py` — the `/language` + `/voice/*` endpoints (incl. the review flow).
+- `config/voices.yaml` — the voice registry (full enforced entries).
+- `setup.sh` — the hash-pinned voice-download block.
+
+The portal's server-selector (it *can* also point at a remote Ph3b3) is a bonus,
+not the identity — light works with nothing but itself.
+
+> Note: the README already advertises the voice/language features. The current
+> seeded `agent/server.py` is from the older `windows` branch and does **not** yet
+> have the 15-voice bench / review gate / text-only mode — this port closes that gap.
 
 *Seeded from the `windows` branch of `Astroson111/ph3b3`.*
