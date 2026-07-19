@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -93,6 +94,7 @@ from jokes_module import JokesModule
 from vision_module import VisionModule
 from metis_module import MetisModule, SearchBroken
 from morpheus_floor import floor_check
+from web_harm_floor import harm_check
 from tts_module import TTSModule
 from stt_module import STTModule
 from anime_module import AnimeModule
@@ -468,22 +470,76 @@ def _time_intercept(user_msg: str):
     return None
 
 
-def _floor_gate(text: str) -> bool:
-    """Six-welded-category safety floor, applied in every language: check the raw
-    text, then (best-effort) its English translation so non-English phrasing is
-    gated too. Returns True if the floor fires (caller must refuse)."""
+def _safety_gate(text: str, translate: bool = False) -> bool:
+    """Intent-layer safety wall: the six image-floor categories PLUS the web-harm
+    floor (CBRN / weapons / illicit synthesis). Applied to the user's turn BEFORE
+    any routing or answering, so it fires whether or not a search runs. With
+    translate=True (the egress path — search queries and summaries) it also checks
+    an English translation, so non-English phrasing is gated. Returns True if
+    anything fires (caller must refuse)."""
     if not text or not text.strip():
         return False
-    if floor_check(text):
+    if floor_check(text) or harm_check(text):
         return True
-    try:
-        tr = translation.translate(text, "en")
-        en = (tr.get("translated") or tr.get("tts_text") or "") if isinstance(tr, dict) else ""
-        if en and floor_check(en):
-            return True
-    except Exception:
-        pass
+    if translate:
+        try:
+            tr = translation.translate(text, "en")
+            en = (tr.get("translated") or tr.get("tts_text") or "") if isinstance(tr, dict) else ""
+            if en and (floor_check(en) or harm_check(en)):
+                return True
+        except Exception:
+            pass
     return False
+
+
+# Pre-LLM search-intent detection. When this fires, the search is FORCED and
+# fail-closed — Ph3b3 never relies on the model choosing to call the tool.
+_SEARCH_TRIGGERS = (
+    "search the web", "search online", "search the internet", "web search",
+    "look it up online", "look this up", "look up online", "google ", "duckduckgo",
+    "on the web", "on the internet", "find online", "search for",
+    "latest news", "current news", "recent news", "breaking news",
+    "what's the latest", "whats the latest", "what is the latest",
+    "up to date", "up-to-date", "real-time", "real time",
+    "today's news", "todays news", "what happened today", "current price of",
+    "who won the", "score of the",
+)
+_SEARCH_PREFIX = re.compile(
+    r"^\s*(please\s+)?(can you\s+)?(search (the )?(web|internet|online)( for)?|"
+    r"look( this)? up( online)?|google|duckduckgo|find( me)?( online)?|"
+    r"search for|look up)\s*[:,]?\s*", re.I)
+
+
+def _search_intent(user_msg: str):
+    """Return a search query if the turn clearly wants live/web info, else None.
+    Deliberately ignores 'search my notes' etc. (that's a different local tool)."""
+    ul = (user_msg or "").lower()
+    if "my note" in ul or "my file" in ul or "search notes" in ul or "search my" in ul:
+        return None
+    if not any(t in ul for t in _SEARCH_TRIGGERS):
+        return None
+    q = _SEARCH_PREFIX.sub("", user_msg).strip()
+    return q or user_msg.strip()
+
+
+def _norm_url(u: str) -> str:
+    return (u or "").strip().rstrip("/").lower()
+
+
+def _cite(answer: str, sources: list) -> str:
+    """Server-constructed citations — forged links are structurally impossible.
+    Strip any 'Sources' block the MODEL wrote, neutralise any inline URL that is
+    not an actual result URL, then append the authoritative list built from the
+    real result URLs Metis returned."""
+    allowed = {_norm_url(u) for u in sources}
+    body = re.split(r"\n\s*sources?\s*:", answer, maxsplit=1, flags=re.I)[0].rstrip()
+    def _keep(m):
+        return m.group(0) if _norm_url(m.group(0).rstrip(".,);]")) in allowed else "[link omitted]"
+    body = re.sub(r"https?://[^\s<>\"')\]]+", _keep, body)
+    if not sources:
+        return body
+    cited = "\n".join(f"{i}. {u}" for i, u in enumerate(sources[:6], 1))
+    return f"{body}\n\nSources:\n{cited}"
 
 
 async def _handle_web_search(query: str, client, messages) -> str:
@@ -493,7 +549,7 @@ async def _handle_web_search(query: str, client, messages) -> str:
     q = (query or "").strip()
     if not metis.is_enabled():
         return "Web access is off. You can turn it on from the Status page in either portal."
-    if _floor_gate(q):
+    if _safety_gate(q, translate=True):
         return "I'm not able to run that search."
     try:
         g = await metis.gather(q)
@@ -526,11 +582,9 @@ async def _handle_web_search(query: str, client, messages) -> str:
     except Exception as e:
         log.error(f"Web summarize failed: {e}")
         return "I found results but couldn't summarise them just now."
-    if _floor_gate(answer):
+    if _safety_gate(answer, translate=True):
         return "I found results, but I'm not able to summarise that topic."
-    if "http" not in answer:                       # cited answer, always
-        answer = answer.rstrip() + "\n\nSources:\n" + "\n".join(g["sources"][:5])
-    return answer
+    return _cite(answer, g["sources"])             # server-constructed citations
 
 
 async def chat_with_tools(messages):
@@ -646,6 +700,23 @@ async def chat_endpoint(body: dict):
         session.add("assistant", _det)
         audio_b64 = await asyncio.to_thread(tts.synthesize_to_b64, _det)
         return {"response": _det, "audio": audio_b64}
+    # Intent-layer safety wall — gate the turn BEFORE routing or answering, so a
+    # harmful ask is refused whether or not any tool would fire.
+    if _safety_gate(user_msg):
+        refusal = "I can't help with that."
+        session.add("assistant", refusal)
+        audio_b64 = await asyncio.to_thread(tts.synthesize_to_b64, refusal)
+        return {"response": refusal, "audio": audio_b64}
+    # Forced web-search routing — if search intent is detected pre-LLM, the search
+    # MUST run and fail CLOSED (off -> "web access is off"; broken -> honest error).
+    # Ph3b3 never depends on the model deciding to call the tool.
+    _q = _search_intent(user_msg)
+    if _q is not None:
+        async with httpx.AsyncClient(timeout=120) as _client:
+            answer = await _handle_web_search(_q, _client, session.messages())
+        session.add("assistant", answer)
+        audio_b64 = await asyncio.to_thread(tts.synthesize_to_b64, answer)
+        return {"response": answer, "audio": audio_b64}
     response, updated = await chat_with_tools(session.messages())
     session.history = updated
     session.add("assistant", response)
