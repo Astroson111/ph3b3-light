@@ -22,7 +22,7 @@ Ph3b3-Light is the thin, Windows-friendly build of Ph3b3: a fast web portal you 
   - **Ph3b3** (`/chat/`) — the full main portal (purple moon).
   - One tap switches between them; the root `/` opens Light.
 - **Installable as an app (PWA)** — pin it to your Windows taskbar from Edge/Chrome, or add it to your Android home screen. Each portal installs as its own distinct app with its own icon.
-- **Password-protected** — every page sits behind an auth gate.
+- **One private login** — a single username + password guards your data (no stacked browser pop-ups). Change them anytime from Settings; they're saved to `.env`.
 
 ---
 
@@ -64,8 +64,9 @@ and takes roughly **15–30 minutes** on a typical connection. It's **safe to re
 completed steps are skipped, and your `.env`/password are never overwritten.
 
 When it finishes, your browser opens **Ph3b3-Light** at `http://localhost:7331/light/`.
-Sign in with the username/password the wizard printed. Tap **☾ Ph3b3** in the top bar
-to switch to the full portal.
+Sign in once at the single login screen with the username/password the wizard printed
+(no browser pop-up) — you can change them later in Settings. Tap **☾ Ph3b3** in the top
+bar to switch to the full portal.
 
 > **Already living in the Ubuntu terminal / no interest in the Windows browser bits?**
 > Just run `./setup.sh` (same steps, Linux-only) then `.venv/bin/python agent/server.py`.
@@ -93,6 +94,22 @@ On **Android**, use Chrome's **Add to Home screen** to install each portal as it
 Open **🗣 VOICE** in the top bar to choose a voice and language and preview how it sounds. Each language speaks in its own native voice; languages without an installed native voice appear as *functional* (translation-only). Changes are stored server-side, so both portals stay in sync.
 
 *Note: Piper has no Japanese or Korean voice — those languages are text-only.*
+
+---
+
+## Signing in & changing your login
+
+Ph3b3-Light has **one login** — a single username and password. The page itself
+loads without a browser pop-up; the login screen (and everything behind it — your
+chats, voice, images) is guarded in-app.
+
+- The wizard creates the first login: username **`phoebe`** and a **random password
+  it prints once** (copy it down).
+- **Change your username or password** anytime from **🗣 VOICE → 🔑 Account**: enter a
+  new username, a new password (twice), and hit **Update login**. It applies
+  immediately — you stay signed in — and is saved to `.env`, so it survives a restart.
+  (Passwords must be at least 6 characters.)
+- Credentials live only in your `.env` on this machine and never leave it.
 
 ---
 
