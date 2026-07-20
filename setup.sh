@@ -3,8 +3,9 @@
 # setup.sh — Ph3b3-Light setup, WSL/Linux side.
 #
 # Runs the Linux-side steps of the first-run wizard: system audio libs, Python
-# environment + pinned dependencies, the default Alba voice, a small Whisper
-# model, and .env. Called by setup.ps1 (the Windows entry point) but also works
+# environment + pinned dependencies, her persona (soul.md), the default Alba
+# voice, a small Whisper model, and .env. Called by setup.ps1 (the Windows
+# entry point) but also works
 # standalone if you are already in the Ubuntu terminal:  ./setup.sh
 #
 # Idempotent: safe to re-run. Completed steps are skipped; broken ones repaired.
@@ -113,6 +114,18 @@ PY
   fi
 }
 
+# ── Persona — seed soul.md from the public soul on first run ─────────────────
+setup_soul() {
+  say "Persona — soul.md"
+  if [ -f soul/soul.md ]; then ok "soul.md already present — leaving it untouched"; return; fi
+  if [ -f soul/soul_public.md ]; then
+    cp soul/soul_public.md soul/soul.md
+    ok "seeded soul/soul.md from soul_public.md (edit it to make her yours)"
+  else
+    warn "no soul/soul_public.md to seed from — Phoebe will boot with a minimal default persona"
+  fi
+}
+
 # ── .env — generate once, print the password once ───────────────────────────
 _gen_pass() {
   .venv/bin/python - <<'PY' 2>/dev/null || (head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-24)
@@ -144,8 +157,9 @@ case "${1:-all}" in
   voice)      setup_voice ;;
   voices-all) voices_all ;;
   whisper)    setup_env; setup_whisper ;;
+  soul)       setup_soul ;;
   dotenv)     setup_env; setup_dotenv ;;
-  all)        setup_system; setup_env; setup_voice; setup_whisper; setup_dotenv
+  all)        setup_system; setup_env; setup_soul; setup_voice; setup_whisper; setup_dotenv
               printf "\n\033[1;32m✓ Linux-side setup complete.\033[0m\n" ;;
-  *)          die "unknown step '$1'" "run:  ./setup.sh   (or: env | voice | voices-all | whisper | dotenv)" ;;
+  *)          die "unknown step '$1'" "run:  ./setup.sh   (or: env | soul | voice | voices-all | whisper | dotenv)" ;;
 esac

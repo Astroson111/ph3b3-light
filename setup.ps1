@@ -136,6 +136,9 @@ if ($LASTEXITCODE -ne 0) { Die "setup.sh reported an error (see above)." "fix th
 $user = WslGet "grep -E '^PH3B3_USER=' .env | head -1 | cut -d= -f2-"
 $pass = WslGet "grep -E '^PH3B3_PASSWORD=' .env | head -1 | cut -d= -f2-"
 if (-not $pass) { Die "No password found in .env after setup." "run inside WSL:  ./setup.sh dotenv" }
+# Honor a custom PH3B3_PORT from .env (defaults to 7331).
+$envPort = WslGet "grep -E '^PH3B3_PORT=' .env | head -1 | cut -d= -f2-"
+if ($envPort -match '^\d+$') { $PORT = [int]$envPort }
 
 Say "Starting Phoebe…"
 # Only start a new server if one isn't already answering on the port.
@@ -146,7 +149,15 @@ try {
   if ($r.StatusCode -eq 200) { $already = $true }
 } catch {}
 if (-not $already) {
-  WslRun "nohup .venv/bin/python agent/server.py >/tmp/ph3b3.log 2>&1 & disown" | Out-Null
+  # A process backgrounded inside a one-shot `wsl … &` is reaped the moment that
+  # call returns (WSL tears down the session scope, so nohup/disown don't save it).
+  # Instead launch a DETACHED Windows process that runs the server in the
+  # foreground inside WSL: it outlives this script and keeps the WSL session — and
+  # Phoebe — alive. Passed as one hand-quoted arg string so Start-Process doesn't
+  # split the command on its spaces.
+  $inner  = "cd '$LinuxPath' && exec .venv/bin/python agent/server.py >/tmp/ph3b3.log 2>&1"
+  $wslArg = "-d $Distro -- bash -lc `"$inner`""
+  Start-Process -WindowStyle Hidden -FilePath 'wsl.exe' -ArgumentList $wslArg | Out-Null
 }
 
 Say "Waiting for the server to answer on http://127.0.0.1:$PORT …"
