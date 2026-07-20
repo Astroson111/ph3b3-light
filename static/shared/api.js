@@ -37,8 +37,8 @@
         const b64 = localStorage.getItem(_credKey(currentServerId));
         authHeader = b64 ? 'Basic ' + b64 : '';
     }
-    function _storeAuth(password) {
-        const b64 = btoa(currentServer().user + ':' + password);
+    function _storeAuth(user, password) {
+        const b64 = btoa(user + ':' + password);
         localStorage.setItem(_credKey(currentServerId), b64);
         authHeader = 'Basic ' + b64;
     }
@@ -49,32 +49,44 @@
     function _showLogin(msg) {
         document.getElementById('login-sub').textContent = 'Connect to ' + currentServer().label;
         document.getElementById('login-err').textContent = msg || '';
+        const uEl = document.getElementById('login-user');
+        if (uEl) uEl.value = currentServer().user || uEl.value || '';
         document.getElementById('login-pass').value = '';
         document.getElementById('login-overlay').classList.add('visible');
-        setTimeout(() => document.getElementById('login-pass').focus(), 50);
+        setTimeout(() => (uEl && !uEl.value ? uEl : document.getElementById('login-pass')).focus(), 50);
     }
     function _hideLogin() {
         document.getElementById('login-overlay').classList.remove('visible');
     }
-    async function _tryLogin(password) {
-        if (!password) return;
-        _storeAuth(password);
+    async function _tryLogin(user, password) {
+        if (!user || !password) {
+            document.getElementById('login-err').textContent = 'Enter both username and password.';
+            return;
+        }
+        _storeAuth(user, password);
         try {
             const r = await fetch(api('/health'), { headers: { 'Authorization': authHeader } });
             if (r.ok) { _hideLogin(); initApp(); return; }
         } catch {}
         _clearAuth();
         document.getElementById('login-err').textContent =
-            'Wrong password (or server unreachable) — try again.';
+            'Wrong username or password (or server unreachable) — try again.';
         document.getElementById('login-pass').value = '';
         document.getElementById('login-pass').focus();
     }
+    function _submitLogin() {
+        _tryLogin(
+            (document.getElementById('login-user').value || '').trim(),
+            document.getElementById('login-pass').value
+        );
+    }
+    document.getElementById('login-user').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('login-pass').focus();
+    });
     document.getElementById('login-pass').addEventListener('keydown', e => {
-        if (e.key === 'Enter') _tryLogin(e.target.value);
+        if (e.key === 'Enter') _submitLogin();
     });
-    document.getElementById('login-btn').addEventListener('click', () => {
-        _tryLogin(document.getElementById('login-pass').value);
-    });
+    document.getElementById('login-btn').addEventListener('click', _submitLogin);
 
     // ── Server switching / editor ─────────────────────────────────────────────
     function renderServerSelect() {

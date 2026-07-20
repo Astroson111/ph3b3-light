@@ -18,6 +18,7 @@
         <div id="login-box">
             <div id="login-title">PH3B3</div>
             <div id="login-sub">Enter access code</div>
+            <input id="login-user" type="text" placeholder="username…" autocomplete="username" autocapitalize="none" spellcheck="false" />
             <input id="login-pass" type="password" placeholder="password…" autocomplete="current-password" />
             <button id="login-btn">CONNECT</button>
             <div id="login-err"></div>
@@ -102,6 +103,22 @@
                     <span id="web-backend"></span>
                 </div>
                 <div class="status-note">When <b>ON</b>, your search queries leave this machine (to your SearXNG instance or DuckDuckGo). Searches are always announced and cited. Default is <b>OFF</b>.</div>
+            </div>
+            <div class="status-card">
+                <div class="status-card-title">🔑 Account</div>
+                <div class="status-row">
+                    <input id="acct-user" type="text" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" />
+                </div>
+                <div class="status-row">
+                    <input id="acct-pass" type="password" placeholder="new password" autocomplete="new-password" />
+                </div>
+                <div class="status-row">
+                    <input id="acct-pass2" type="password" placeholder="confirm new password" autocomplete="new-password" />
+                </div>
+                <div class="status-row">
+                    <button id="acct-save">Update login</button>
+                </div>
+                <div id="acct-note" class="status-note">Changes your login for this machine. You stay signed in — use the new details next time.</div>
             </div>
         </div>
     </div>

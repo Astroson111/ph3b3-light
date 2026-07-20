@@ -11,8 +11,13 @@
     const langNote     = document.getElementById('lang-note');
     const webToggle    = document.getElementById('web-toggle');
     const webBackend   = document.getElementById('web-backend');
+    const acctUser     = document.getElementById('acct-user');
+    const acctPass     = document.getElementById('acct-pass');
+    const acctPass2    = document.getElementById('acct-pass2');
+    const acctSave     = document.getElementById('acct-save');
+    const acctNote     = document.getElementById('acct-note');
 
-    function openStatus()  { overlay.classList.add('open'); loadVoices(); loadLanguages(); loadWebAccess(); }
+    function openStatus()  { overlay.classList.add('open'); loadVoices(); loadLanguages(); loadWebAccess(); loadAccount(); }
     function closeStatus() { overlay.classList.remove('open'); }
 
     async function apiGet(path) {
@@ -143,6 +148,47 @@
             setWebUI(d);
             addSys('Web access → ' + (d.enabled ? ('ON · via ' + (d.backend_label || 'web')) : 'OFF'));
         } catch { webToggle.disabled = false; }
+    });
+
+    // ── Account (change login username/password) — local server only ───────────
+    function _currentUser() {
+        try { return atob((authHeader || '').replace(/^Basic /, '')).split(':')[0]; }
+        catch { return ''; }
+    }
+    function loadAccount() {
+        if (!acctSave) return;
+        // Changing creds only makes sense for the server that served this page.
+        const local = !currentServer().base;
+        acctUser.disabled = acctPass.disabled = acctPass2.disabled = acctSave.disabled = !local;
+        acctNote.className = 'status-note';
+        if (local) {
+            acctUser.value = _currentUser();
+            acctPass.value = acctPass2.value = '';
+            acctNote.textContent = 'Changes your login for this machine. You stay signed in — use the new details next time.';
+        } else {
+            acctNote.textContent = 'Login changes apply to the local server only. Switch to Local to change these.';
+        }
+    }
+    if (acctSave) acctSave.addEventListener('click', async () => {
+        const u = (acctUser.value || '').trim(), p = acctPass.value, p2 = acctPass2.value;
+        acctNote.className = 'status-note';
+        if (!u)                { acctNote.textContent = 'Username cannot be empty.'; return; }
+        if (u.includes(':'))   { acctNote.textContent = 'Username cannot contain a colon.'; return; }
+        if (p.length < 6)      { acctNote.textContent = 'Password must be at least 6 characters.'; return; }
+        if (p !== p2)          { acctNote.textContent = 'Passwords do not match.'; return; }
+        acctSave.disabled = true;
+        try {
+            const r = await apiPost('/auth/credentials', { username: u, password: p });
+            if (r.ok) {
+                _storeAuth(u, p);                       // keep this session alive with the new creds
+                acctPass.value = acctPass2.value = '';
+                acctNote.textContent = 'Saved — login updated.';
+                addSys('Login updated for ' + currentServer().label);
+            } else {
+                acctNote.textContent = (await r.text().catch(() => '')) || ('Could not update (http ' + r.status + ').');
+            }
+        } catch (e) { if (e.message !== '401') acctNote.textContent = 'Could not reach the server.'; }
+        finally { acctSave.disabled = false; }
     });
 
     document.getElementById('status-open').addEventListener('click', openStatus);

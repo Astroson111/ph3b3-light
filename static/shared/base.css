@@ -167,13 +167,14 @@
         }
         #login-title  { color: #a855f7; font-size: 18px; letter-spacing: 3px; }
         #login-sub    { color: #5b5280; font-size: 12px; }
-        #login-pass   {
+        #login-user, #login-pass {
             width: 100%; background: #0d0d1c;
             border: 1px solid #2a1f4a; border-radius: 4px;
             color: #e2d9f3; font-family: 'Courier New', monospace;
             font-size: 14px; padding: 10px 12px; outline: none;
+            margin-bottom: 8px; box-sizing: border-box;
         }
-        #login-pass:focus { border-color: #a855f7; }
+        #login-user:focus, #login-pass:focus { border-color: #a855f7; }
         #login-btn {
             background: #7c3aed; color: white; border: none; border-radius: 4px;
             padding: 10px; font-family: 'Courier New', monospace;

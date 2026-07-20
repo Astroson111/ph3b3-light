@@ -23,6 +23,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ROOT = Path(__file__).parent.parent
+# Where credential changes are persisted. Defaults to the repo .env; overridable
+# (e.g. read-only checkout, or an isolated test run) via PH3B3_ENV_FILE.
+ENV_FILE = Path(os.getenv("PH3B3_ENV_FILE", str(ROOT / ".env")))
 SOUL_FILE = ROOT / "soul" / "soul.md"
 MODULES_DIR = ROOT / "modules"
 SKILL_LOG = Path.home() / "ph3b3_data" / "skills" / "skill_log.jsonl"
@@ -124,10 +127,27 @@ app.add_middleware(
     allow_credentials=False,
 )
 
+# The static shell (HTML/CSS/JS/icons/manifest/service workers) is served WITHOUT
+# auth so the app can present ONE in-app login instead of the browser's native
+# popup stacking on top of it. Every DATA/API route stays behind Basic auth below
+# — the shell holds no secrets, and the in-app login gates every request that
+# returns your data (/health, /chat, /image, /voice, …). GET/HEAD only, so the
+# POST /chat API is unaffected.
+_PUBLIC_GET_PATHS = {"/", "/light", "/light/", "/chat", "/chat/",
+                     "/light/sw.js", "/chat/sw.js"}
+def _is_public_shell(request: Request) -> bool:
+    if request.method not in ("GET", "HEAD"):
+        return False
+    p = request.url.path
+    return p in _PUBLIC_GET_PATHS or p.startswith("/static/")
+
 @app.middleware("http")
 async def basic_auth(request: Request, call_next):
     # Let CORS preflights through — CORSMiddleware handles OPTIONS, not us.
     if request.method == "OPTIONS":
+        return await call_next(request)
+    # Public shell assets bypass auth; the in-app login guards the data routes.
+    if _is_public_shell(request):
         return await call_next(request)
     if not AUTH_PASS:
         return Response(
@@ -825,6 +845,51 @@ async def web_toggle(body: dict):
     return metis.status()
 
 
+def _update_env_file(updates: dict) -> None:
+    """Persist key=value changes to .env in place, preserving every other line and
+    comment. Existing keys are replaced; missing ones appended."""
+    lines = ENV_FILE.read_text(encoding="utf-8").splitlines() if ENV_FILE.exists() else []
+    remaining = dict(updates)
+    out = []
+    for line in lines:
+        s = line.lstrip()
+        if "=" in s and not s.startswith("#"):
+            key = s.split("=", 1)[0].strip()
+            if key in remaining:
+                out.append(f"{key}={remaining.pop(key)}")
+                continue
+        out.append(line)
+    for key, val in remaining.items():
+        out.append(f"{key}={val}")
+    ENV_FILE.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+@app.post("/auth/credentials")
+async def change_credentials(body: dict):
+    """Change the login username/password for this machine. This route sits behind
+    the Basic-auth middleware, so the caller has already proven the current
+    password. Applies immediately to the running server AND writes .env so it
+    survives a restart."""
+    global AUTH_USER, AUTH_PASS
+    new_user = str(body.get("username", "")).strip()
+    new_pass = str(body.get("password", ""))
+    if not new_user:
+        return Response(content="Username cannot be empty.", status_code=400)
+    if ":" in new_user:
+        return Response(content="Username cannot contain a colon.", status_code=400)
+    if len(new_pass) < 6:
+        return Response(content="Password must be at least 6 characters.", status_code=400)
+    AUTH_USER, AUTH_PASS = new_user, new_pass
+    try:
+        _update_env_file({"PH3B3_USER": new_user, "PH3B3_PASSWORD": new_pass})
+    except Exception as e:
+        log.error(f"Credentials changed in memory but .env write failed: {e}")
+        return Response(content="Updated for this session, but saving to .env failed — check permissions.",
+                        status_code=500)
+    log.info(f"Login credentials updated — username is now '{new_user}'")
+    return {"ok": True, "username": new_user}
+
+
 @app.get("/image/config")
 async def image_config():
     """Image-mode UI state. `live_enabled` is the server master gate — the UI greys
@@ -977,8 +1042,9 @@ async def light_noslash():
 
 @app.get("/light/")
 async def light_index():
-    # Light portal: thin shell over /static/shared/* (same origin, same Basic
-    # auth realm as "/"). The basic_auth middleware gates this like every route.
+    # Light portal: thin shell over /static/shared/*. Served publicly (no Basic
+    # auth) so the app shows one in-app login instead of a native browser popup;
+    # the data/API routes it calls stay gated (see _is_public_shell).
     return Response(
         content=(ROOT / "static" / "light" / "index.html").read_text(encoding="utf-8"),
         media_type="text/html",
@@ -994,8 +1060,8 @@ async def chat_portal_noslash():
 
 @app.get("/chat/")
 async def chat_portal_index():
-    # Main portal: fresh shell over the same /static/shared/* core, same origin
-    # and Basic-auth realm as "/" and "/light/".
+    # Main portal: fresh shell over the same /static/shared/* core. Served
+    # publicly like /light/ (the in-app login is the single auth gate).
     return Response(
         content=(ROOT / "static" / "chat" / "index.html").read_text(encoding="utf-8"),
         media_type="text/html",

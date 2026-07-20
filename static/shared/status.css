@@ -66,3 +66,21 @@
 #web-toggle:disabled { opacity: .5; cursor: not-allowed; }
 #web-backend { margin-top: 0; color: #8b7fb8; font-size: 12px; }
 .status-note .tier-functional { color: #fbbf24; font-weight: bold; }
+
+/* ── Account (change login) ─────────────────────────────────────────────── */
+.status-card input[type="text"], .status-card input[type="password"] {
+    flex: 1; min-width: 160px; background: #0d0d1c; color: #e2d9f3;
+    border: 1px solid #3d3660; border-radius: 4px; font: inherit; font-size: 13px;
+    padding: 8px 10px; box-sizing: border-box;
+}
+.status-card input[type="text"]:focus, .status-card input[type="password"]:focus {
+    outline: none; border-color: #a855f7;
+}
+.status-card input:disabled { opacity: .5; cursor: not-allowed; }
+#acct-save {
+    background: #7c3aed; color: #fff; border: none; border-radius: 4px;
+    font: inherit; font-size: 13px; font-weight: bold; letter-spacing: 1px;
+    padding: 8px 16px; cursor: pointer; transition: background .15s; flex-shrink: 0;
+}
+#acct-save:hover:not(:disabled) { background: #a855f7; }
+#acct-save:disabled { background: #2a1f4a; color: #5b5280; cursor: not-allowed; }
