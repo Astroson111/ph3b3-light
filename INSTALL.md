@@ -24,6 +24,12 @@ A GPU is required. Hermes3 and LLaVA will not run usably on CPU.
 Runs the entire stack self-contained on **one Windows laptop** — no second
 machine, no remote inference. Validated on an RTX 2060 Max-Q (6 GB VRAM).
 
+> **Just want it running?** The one-command wizard in the
+> [README](README.md#quick-start--one-command) (`setup.ps1`) automates almost all
+> of this — Ollama, the model pull, the Python env, the Alba voice, `.env`, and
+> launch. The manual steps below are for tuning, the Stack-chan device, or when you
+> want to understand exactly what the wizard does.
+
 **Architecture on Windows:**
 - **Ollama runs on the Windows host** (native CUDA), reached from WSL at
   `http://localhost:11434`.

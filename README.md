@@ -35,58 +35,45 @@ Ph3b3-Light is the thin, Windows-friendly build of Ph3b3: a fast web portal you 
 
 ---
 
-## Quick start (Windows)
+## Quick start — one command
 
-### 1. Install WSL2 and Ollama
-From an **admin PowerShell**:
-```powershell
-wsl --install -d Ubuntu-24.04
-```
-Reboot, set your Linux username and password, then install [Ollama for Windows](https://ollama.com) and pull a model:
-```powershell
-ollama pull hermes3
-```
+You need **WSL2** first (Windows' built-in Linux). If you've never used it, open an
+**admin PowerShell**, run `wsl --install -d Ubuntu`, reboot, and set a Linux
+username/password when prompted. That's the only manual step.
 
-### 2. Let WSL reach Windows Ollama
-Create `C:\Users\<you>\.wslconfig`:
-```ini
-[wsl2]
-networkingMode=mirrored
-```
-Then, from PowerShell, `wsl --shutdown` so it takes effect. Now `localhost` works between WSL and Windows, and the default `OLLAMA_HOST=http://localhost:11434` in `.env` just works.
+Then, from the **Ubuntu terminal**, clone and run the wizard:
 
-### 3. Clone and configure (in the **Ubuntu** terminal)
-Clone into your Linux home — *not* a Windows folder like `/mnt/c/...` (slow, and permissions get messy):
 ```bash
-cd ~
-git clone https://github.com/Astroson111/ph3b3-light.git
-cd ph3b3-light
-cp .env.example .env
-nano .env      # set PH3B3_USER and PH3B3_PASSWORD
+cd ~ && git clone https://github.com/Astroson111/ph3b3-light.git && cd ph3b3-light
+powershell.exe -ExecutionPolicy Bypass -File ./setup.ps1
 ```
 
-### 4. Set up and download a voice
-```bash
-chmod +x setup.sh && ./setup.sh
+That's it. The wizard (`setup.ps1`) does everything else for you:
 
-# Alba — the default English voice (required):
-mkdir -p ~/ph3b3_data/voices && cd ~/ph3b3_data/voices
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alba/medium/en_GB-alba-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alba/medium/en_GB-alba-medium.onnx.json
-```
-Want the full multilingual set? Grab the other 15 voices the same way from [`rhasspy/piper-voices`](https://huggingface.co/rhasspy/piper-voices) — one `.onnx` (+ its `.onnx.json`) per language, dropped into `~/ph3b3_data/voices`. They appear in the UI automatically, no restart of setup needed.
+1. Confirms WSL2 is present.
+2. Makes sure **Ollama** is running (your Windows install *or* one it sets up in
+   WSL) and pulls the `hermes3` model.
+3. Installs system libraries, the Python environment, the **Alba** English voice,
+   and a small Whisper speech-to-text model.
+4. Generates a `.env` with a **random password — printed once, so copy it down.**
+5. Starts the server, waits until she's healthy, and **opens the portal in your
+   browser**.
 
-### 5. Wake her up
-From the Ubuntu terminal:
-```bash
-cd ~/ph3b3-light
-.venv/bin/python agent/server.py
-```
-Then open **Edge or Chrome on Windows** and go to:
-```
-http://localhost:7331
-```
-Sign in with the `PH3B3_USER` / `PH3B3_PASSWORD` from your `.env`. The root opens **Ph3b3-Light**; tap **☾ Ph3b3** in the top bar to switch to the full portal.
+**First run downloads a few gigabytes** (the `hermes3` model is the big one, ~4.7 GB)
+and takes roughly **15–30 minutes** on a typical connection. It's **safe to re-run** —
+completed steps are skipped, and your `.env`/password are never overwritten.
+
+When it finishes, your browser opens **Ph3b3-Light** at `http://localhost:7331/light/`.
+Sign in with the username/password the wizard printed. Tap **☾ Ph3b3** in the top bar
+to switch to the full portal.
+
+> **Already living in the Ubuntu terminal / no interest in the Windows browser bits?**
+> Just run `./setup.sh` (same steps, Linux-only) then `.venv/bin/python agent/server.py`.
+> Add the other 15 language voices any time with `./setup.sh voices-all`.
+>
+> **Prefer to do everything by hand?** The full manual runbook — including GPU
+> passthrough, mirrored networking, and firewall rules — is in
+> **[INSTALL.md](INSTALL.md)**.
 
 ---
 
